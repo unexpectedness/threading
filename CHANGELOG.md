@@ -1,9 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.3.5] - 2024-08-01
+### Changed
+- bump `shuriken` to version `0.14.51`.
+
 ## [0.3.4] - 2018-03-08
 ### Changed
-- upgraded `shuriken` to version `0.14.36`.
+- bump `shuriken` to version `0.14.36`.
 
 ## [0.3.3] - 2018-09-16
 ### Fixed:
@@ -11,12 +15,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## [0.3.2] - 2018-09-16
 ### Fixed:
-- updated shuriken to version `0.14.16` in to order to fix order of
+- bump shuriken to version `0.14.16` in to order to fix order of
   `map-vals->` and `map-keys->` on sequences.
 
 ## [0.3.1] - 2018-09-15
 ### Fixed:
-- updated shuriken to version `0.14.15` in to order to fix order of
+- bump shuriken to version `0.14.15` in to order to fix order of
   `map-vals->` and `map-keys->` on lists.
 
 ## [0.3.0] - 2018-09-08
@@ -38,7 +42,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## [0.1.9] - 2018-09-04
 ### Changed
-- Updated `shuriken` to `0.14.9`.
+- bump `shuriken` to `0.14.9`.
 
 ## [0.1.8] - 2018-08-22
 ### Added
