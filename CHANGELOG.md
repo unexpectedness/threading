@@ -1,6 +1,15 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+# [0.4.0] - 2024-08-01
+### Added
+- `filter->`.
+- `juxtm->`.
+- `when-let->`.
+### Changed
+- Clojurescript support.
+- `•-` & friends become `|-`.
+
 ## [0.3.5] - 2024-08-01
 ### Changed
 - bump `shuriken` to version `0.14.51`.
@@ -34,7 +43,6 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 - `>-` becomes `>>-` and vice-versa.
-
 
 ## [0.1.10] - 2018-09-05
 ### Added

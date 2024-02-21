@@ -39,7 +39,7 @@ A Clojure library that provides the kind of arrows you need on an impulse as wel
 ## Usage
 
 ```clojure
-[threading "0.3.5"]
+[threading "0.4.0"]
 ```
 
 ```clojure
@@ -265,13 +265,13 @@ Similarly:
 
 ### Teleport fletching/arrow
 
-The `•-` fletching stores the threaded expression on the stack then threads it to the threading form. Any deep occurence of the `-•` arrow in the threading form will thread this stored value to the next expressions.
+The `|-` fletching stores the threaded expression on the stack then threads it to the threading form. Any deep occurence of the `-|` arrow in the threading form will thread this stored value to the next expressions.
 
 ```clojure
-(-> 1  (•-  (+ 100 (-•  (/ 2))))) ;; => 101.5
-(-> 1  (•-  (+ 100 (-•• (/ 2))))) ;; => 103
-(->> 1 (••- (+ 100 (-•  (/ 2))))) ;; => 101.5
-(->> 1 (••- (+ 100 (-•• (/ 2))))) ;; => 103
+(-> 1  (|-  (+ 100 (-|  (/ 2))))) ;; => 101.5
+(-> 1  (|-  (+ 100 (-|| (/ 2))))) ;; => 103
+(->> 1 (||- (+ 100 (-|  (/ 2))))) ;; => 101.5
+(->> 1 (||- (+ 100 (-|| (/ 2))))) ;; => 103
 ```
 
 ## Defining new arrows

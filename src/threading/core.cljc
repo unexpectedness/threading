@@ -1,11 +1,12 @@
 (ns threading.core
-  (:require [clojure.spec.alpha :as s]
-            [clojure.string :as str]
-            [shuriken.spec :refer [conform!]]
-            [shuriken.string :refer [adjust truncate lines join-lines
-                                     format-code]]
-            [shuriken.debug :refer [debug-print]]
-            [shuriken.associative :refer [map-keys map-vals]]))
+  (:require [clojure.spec.alpha             :as    s]
+            [clojure.string                 :as    str]
+            [shuriken.spec                  :refer [conform!]]
+            [shuriken.string                :refer [adjust truncate lines join-lines
+                                                    format-code]]
+            [shuriken.debug                 :refer [debug-print]]
+            [shuriken.associative           :refer [map-keys map-vals]])
+  #?(:cljs (:require-macros [threading.core :refer [defthreading >- literally]])))
 
 (s/def ::threading-variant
   (s/cat
@@ -195,7 +196,7 @@
   (let [result-sym (gensym "result-")]
     `(let [~result-sym ~expr]
        ~@(map (fn [x]
-                (if (some->> x first str (re-matches #"^.*->>?|-••?$"))
+                (if (some->> x first str (re-matches #"^.*->>?|-\|\|?$"))
                   `(-> ~result-sym ~x)
                   x))
               body)
@@ -204,7 +205,7 @@
 (defmacro ^:no-doc literally [expr]
   `(let [expr# '~expr
          value# ~expr]
-     [(and (not (instance? clojure.lang.Iterate value#))
+     [(and #_(not (instance? clojure.lang.Iterate value#))
            (= (str expr#) (str value#)))
       value#]))
 
@@ -236,7 +237,7 @@
                              ~(str &threading-variant)
                              max-label-length#)]
        (~log-sym (truncate label-f# max-label-length#)
-                 (if (instance? clojure.lang.Iterate result-f#)
+                 (if false #_(instance? clojure.lang.Iterate result-f#)
                    (take *pp-lazy-max* result-f#)
                    result-f#))
        (~&threading-variant
@@ -245,7 +246,7 @@
                   `((fn [x#]
                       (let [result# (~&threading-variant x# ~expr)]
                         (~log-sym ~(str padding expr)
-                                  (if (instance? clojure.lang.Iterate result#)
+                                  (if false #_(instance? clojure.lang.Iterate result#)
                                     (take *pp-lazy-max* result#)
                                     result#))
                         result#))))
@@ -399,6 +400,19 @@
                   `[(~&threading-variant ~expr-sym ~form)])
                 forms)))))
 
+(defthreading juxtm
+  "Like [[juxt->]] but accepts a flat sequences of key/threading expr pairs,
+   and return a map."
+  [->  "Threads like `->`."
+   ->> "Threads like `->>`."]
+  [expr & kv-exprs]
+  (let [expr-sym (gensym "expr-")]
+    `(let [~expr-sym ~expr]
+       ~(->> (partition 2 kv-exprs)
+             (map (fn [[k v-expr]]
+                    [k `(~&threading-variant ~expr-sym ~v-expr)]))
+             (into {})))))
+
 (defthreading let
   "Threads `expr` through each bound expression then through each form in
   `body` like `let`."
@@ -414,6 +428,24 @@
                   (apply concat)
                   vec)
          (~&threading-variant ~input-sym ~@body)))))
+
+(defthreading when-let
+  "Threads `expr` through each bound expression then through each form in
+  `body` like `let`."
+  [->  "Threads like `->`."
+   ->> "Threads like `->>`."]
+  [expr bindings & body]
+  (assert (= 2 (count bindings)))
+  (let [input-sym (gensym "input-")
+        adapt (fn [expr] `(~&threading-variant ~input-sym ~expr))]
+    `(as-> ~expr ~input-sym
+       (or (when-let ~(->> bindings
+                           (partition 2)
+                           (>>- (map-vals-> adapt))
+                           (apply concat)
+                           vec)
+             (~&threading-variant ~input-sym ~@body))
+           ~input-sym))))
 
 (defthreading binding
   "Threads `expr` through each bound expression then through each form in
@@ -431,32 +463,38 @@
                       vec)
          ~@(map adapt body)))))
 
-(def ^:private •-value-sym (gensym "•-value-"))
+
+(def ^:private |-value-sym (gensym "|-value-"))
 
 (defthreading
   "Stores `expr` on the stack then threads it to `form`.
-  In `form`, any deep occurence of the `-•` arrow will thread this
+  In `form`, any deep occurence of the `-|` arrow will thread this
   value stored on the stack to its inner expressions.
 
-  Note that `-•` can only be used within the body of a `•-` form."
-  [•-  "Must be used in the context of a thread-first arrow."
-   ••- "Must be used in the context of a thread-last arrow."]
+  Note that `-|` can only be used within the body of a `|-` form."
+  [|-  "Must be used in the context of a thread-first arrow."
+   ||- "Must be used in the context of a thread-last arrow."]
   [first-expr second-expr]
   (let [[expr form arrow] (case &threading-variant
-                            •-  [first-expr  second-expr '->]
-                            ••- [second-expr first-expr  '->>])]
-    `(let [~•-value-sym ~expr]
-       (~arrow ~•-value-sym ~form))))
+                            |-  [first-expr  second-expr '->]
+                            ||- [second-expr first-expr  '->>])]
+    `(let [~|-value-sym ~expr]
+       (~arrow ~|-value-sym ~form))))
 
 (defthreading
-  "See [[•-]]."
-  [-•  "Threads like `->`."
-   -•• "Threads like `->>`."]
+  "See [[|-]]."
+  [-|  "Threads like `->`."
+   -|| "Threads like `->>`."]
   [& forms]
   (let [arrow (case &threading-variant
-                -• '->
-                -•• '->>)]
-    `(~arrow ~•-value-sym ~@forms)))
+                -| '->
+                -|| '->>)]
+    `(~arrow ~|-value-sym ~@forms)))
+
+#?(:clj (defmacro •-  [& args] `(|-  ~@args)))
+#?(:clj (defmacro ••- [& args] `(||- ~@args)))
+#?(:clj (defmacro -•  [& args] `(-|  ~@args)))
+#?(:clj (defmacro -•• [& args] `(-|| ~@args)))
 
 (defthreading args :prefix
   "Fletching that uses the arrow in the threading form to thread the
@@ -476,3 +514,14 @@
        (~head ~@(map (fn [sub]
                        `(~arrow ~v-sym ~sub))
                      subform-subforms)))))
+
+(defthreading filter
+  "For an `expr` that will yield a sequence, threads each of its values
+  through the `forms` to filter it."
+  [->  "Threads like `->`."
+   ->> "Threads like `->>`."]
+  [expr & forms]
+  `(let [expr# ~expr]
+     (filter (fn [f#]
+               (~&threading-variant f# ~@forms))
+             expr#)))

@@ -1,28 +1,53 @@
 (ns threading.core-test
-  (:require [clojure.test :refer :all]
-            [shuriken.core :refer [no-print macroexpand-n]]
-            [threading.core :refer :all]))
+  (:require [clojure.test :refer [deftest testing is]]
+            [threading.core :refer [<- <<-
+                                    >- >>-
+                                    >-> >->>
+                                    >>-> >>->>
+                                    tap tap-> tap->>
+                                    if-> if->>
+                                    if-not-> if-not->>
+                                    when->
+                                    when-not->
+                                    pp-> pp->>
+                                    and-> and->>
+                                    or-> or->>
+                                    not-> not->>
+                                    map-> mapv-> mapcat->
+                                    map-keys-> map-keys->>
+                                    map-vals-> map-vals->>
+                                    juxt-> juxt->>
+                                    juxtm-> juxtm->>
+                                    let-> let->>
+                                    when-let-> when-let->>
+                                    binding-> binding->>
+                                    -| -|| |- ||-
+                                    >-args >>-args
+                                    filter-> filter->>]]))
 
 (deftest test-<-
   (is (= 124 (->  :x (<-  123) inc)))
   (is (= 124 (->> :x (<<- 123) inc))))
 
 (deftest test->>-
-  (is (= 5 (-> 100 (/ 10 2))
-           (-> (/ 10 2) (>-> 100))
-           (-> (/ 10 2) (>- (-> 100)))))
-  (is (= 5 (->> 2 (/ 100 10))
-           (-> (/ 100 10) (>->> 2))
-           (-> (/ 100 10) (>- (->> 2)))))
-  (is (= 5 (-> 2 (>- (/ 100 10))))))
+  (is (= 5
+         (-> 100 (/ 10 2))
+         (-> (/ 10 2) (>-> 100))
+         (-> (/ 10 2) (>- (-> 100)))))
+  (is (= 5
+         (->> 2 (/ 100 10))
+         (-> (/ 100 10) (>->> 2))
+         (-> (/ 100 10) (>- (->> 2)))))
+  (is (= 5
+         (-> 2 (>- (/ 100 10))))))
 
 (deftest test->>-
   (is (= 5 (->  100 (/ 10 2))
-           (->> 100 (>>-> (/ 10 2)))
-           (->> 100 (>>- (->  (/ 10 2))))))
+         (->> 100 (>>-> (/ 10 2)))
+         (->> 100 (>>- (->  (/ 10 2))))))
   (is (= 5 (->> 10  (/ 100 2))
-           (->> 10  (>>->> (/ 100 2)))
-           (->> 10  (>>- (->> (/ 100 2))))))
+         (->> 10  (>>->> (/ 100 2)))
+         (->> 10  (>>- (->> (/ 100 2))))))
   (is (= 5 (->> 100 (>>- (/ 10 2))))))
 
 
@@ -56,6 +81,10 @@
     (testing "when the predicate fails"
       (is (= :x (if-> :x number? inc))))))
 
+(defn- parse-int [s]
+  #?(:clj  (Integer/parseInt s)
+     :cljs (js/parseInt      s)))
+
 (deftest test-if-not->
   (is (= "1a"  (if-not-> 1  number? inc (str "a")))
       (= "a:x" (if-not-> :x number? (str "a") inc)))
@@ -64,7 +93,7 @@
         (= ":xa" (if-not->> :x number? (str "a") inc))))
   (testing "assserting a missing second case is equivalent to 'identity'"
     (testing "when the predicate succeeds"
-      (is (= 2    (if-not-> "1" number? (-> Integer/parseInt inc)))))
+      (is (= 2    (if-not-> "1" number? (-> parse-int inc)))))
     (testing "when the predicate fails"
       (is (= ":x" (if-not-> :x number? str))))))
 
@@ -78,10 +107,10 @@
 
 (deftest test-pp->
   (is (= (-> 1 (/ 2) (/ 2) (/ 2))
-         (no-print (pp-> 1 (/ 2) (/ 2) (/ 2)))))
+         (pp-> 1 (/ 2) (/ 2) (/ 2))))
   (testing "with pp->>"
     (is (= (->> 1 (/ 2) (/ 2) (/ 2))
-           (no-print (pp->> 1 (/ 2) (/ 2) (/ 2)))))))
+           (pp->> 1 (/ 2) (/ 2) (/ 2))))))
 
 (deftest test-and->
   (is (true?  (and->  1 number? (> 0))))
@@ -121,54 +150,72 @@
          (map-keys-> '(["a" 1] ["b" 2]) name))))
 
 (deftest test-map-vals->
-  (is (= {:a 1/2} (map-vals->  {:a 1} (/ 2))))
+  (is (= {:a 0.5} (map-vals->  {:a 1} (/ 2) float)))
   (is (= {:a 2}   (map-vals->> {:a 1} (/ 2))))
   (= [[:a 2] [:b 3]]
      (map-vals->  [[:a 1] [:b 2]] inc)
      (map-vals-> '([:a 1] [:b 2]) inc)))
 
+(deftest test-filter->
+  (is (= [1 3 5 7 9] (filter->  (range 10) odd?)))
+  (is (= [2]         (filter->> (range 10) (- 2) zero?))))
+
 (deftest test-juxt->
-  (is (= [1/2 0 -1] (-> 1 (juxt->  (/ 2) dec -))))
+  (is (= [0.5 0 -1] (-> 1 (juxt->  (-> (/ 2) float) dec -))))
   (is (= [2   0 -1] (-> 1 (juxt->> (/ 2) dec -)))))
 
+(deftest test-juxtm->
+  (is (= {:inc 2 :dec 0} (juxtm->  1 :inc inc   :dec dec)))
+  (is (= {:one 1 :two 2} (juxtm->> 1 :one (/ 1) :two (/ 2)))))
+
 (deftest test-let->
-  (is (= 3/2 (-> 1 (let->  [a (/ 2)] (+ a)))))
+  (is (= 1.5 (-> 1 (let->  [a (/ 2)] (-> (+ a) float)))))
   (is (= 3   (-> 1 (let->> [a (/ 2)] (+ a)))))
-  (is (= 6 (let-> 1 [a inc
-                     b (* a 2)]
-             (+ (inc b)))))
+  (is (= 6         (let-> 1 [a inc
+                             b (* a 2)]
+                          (+ (inc b)))))
   (let [x (atom 0)]
     (is (= 3 (-> 1 (let-> [_ (<- (swap! x inc))
                            _ (<- (swap! x inc))]
-                     inc
-                     inc))))
+                          inc
+                          inc))))
     (is (= 2 @x))))
+
+(deftest test-when-let->
+  (is (= 2      (when-let->  {:a 1} [a :a] (-> :a (+ a)))))
+  (is (= {:a 1} (when-let->  {:a 1} [b :b] (-> :a (+ b)))))
+  (let [multiple (fn [n x]
+                   (let [ret (/ x n)]
+                     (when (integer? ret) ret)))]
+    (is (= 0.5 (when-let->> 4 [a (multiple 2)] (/ a) float)))
+    (is (= 4   (when-let->> 4 [a (multiple 3)] (/ a) float)))))
 
 (def ^:dynamic *a*)
 (deftest test-binding->
-  (is (= 3/2 (-> 1 (binding->  [*a* (/ 2)] (+ *a*)))))
+  (is (= 1.5 (-> 1 (binding->  [*a* (/ 2)] (-> (+ *a*) float)))))
   (is (= 3   (-> 1 (binding->> [*a* (/ 2)] (+ *a*)))))
   (is (= 5 (let->> 1 [a inc
                       b (* a 2)]
-             (/ (inc b)))))
+                   (/ (inc b)))))
   (let [x (atom 0)]
     (is (= 4 (-> 1 (binding-> [*a* (<- (swap! x inc))
                                *a* (<- (swap! x inc))]
-                     (<- (swap! x inc))
-                     (<- (swap! x inc))))))))
+                              (<- (swap! x inc))
+                              (<- (swap! x inc))))))))
 
-(deftest test--•-&-•
-  (testing "•-"
-    (is (= 4 (-> 1 (•- (+ 1 (-• inc))))))
-    (is (= 3 (-> 1 (•- (+ 1 (-•))))))
-    (is (= 4 (-> 1 (•- (+ 1 (-•• (/ 2)))))))
-    (is (= 3 (-> 1 (•- (+ 1 (-••)))))))
-  (testing "••-"
-    (is (= 4 (->> 1 (••- (+ 1 (-• inc))))))
-    (is (= 3 (->> 1 (••- (+ 1 (-•))))))
-    (is (= 4 (->> 1 (••- (+ 1 (-•• (/ 2)))))))
-    (is (= 3 (->> 1 (••- (+ 1 (-••))))))))
+(deftest test--|-&-|
+  (testing "|-"
+    (is (= 4 (-> 1 (|- (+ 1 (-| inc))))))
+    (is (= 3 (-> 1 (|- (+ 1 (-|))))))
+    (is (= 4 (-> 1 (|- (+ 1 (-|| (/ 2)))))))
+    (is (= 3 (-> 1 (|- (+ 1 (-||)))))))
+  (testing "||-"
+    (is (= 4 (->> 1 (||- (+ 1 (-| inc))))))
+    (is (= 3 (->> 1 (||- (+ 1 (-|))))))
+    (is (= 4 (->> 1 (||- (+ 1 (-|| (/ 2)))))))
+    (is (= 3 (->> 1 (||- (+ 1 (-||))))))))
 
 (deftest test-->args
-  (is (= 9/2 (->  1 (>-args  (->  (+ inc inc (/ 2)))))))
+  (is (= 4.5 (->  1 (-> (>-args  (->  (+ inc inc (/ 2))))
+                        float))))
   (is (= 6   (->> 1 (>>-args (->> (+ inc inc (/ 2))))))))
