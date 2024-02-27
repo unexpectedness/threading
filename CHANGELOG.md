@@ -1,7 +1,15 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-# [0.4.0] - 2024-08-01
+# [0.4.1] - 2024-02-27
+### Changed
+- Renamed
+  - `tap->` to `doto->`.
+  - `tap->>` to `doto->>`.
+  - `tap` to `dotos`.
+  - `|-` & friends become `o-`.
+
+# [0.4.0] - 2024-02-20
 ### Added
 - `filter->`.
 - `juxtm->`.

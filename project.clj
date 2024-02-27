@@ -1,4 +1,4 @@
-(defproject threading "0.4.0"
+(defproject net.clojars.unexpectedness/threading "0.4.1"
   :description "A threading macro library as sobber as its name"
   :url "https://github.com/unexpectedness/threading"
   :license {:name "Eclipse Public License"

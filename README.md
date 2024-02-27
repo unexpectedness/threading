@@ -39,7 +39,7 @@ A Clojure library that provides the kind of arrows you need on an impulse as wel
 ## Usage
 
 ```clojure
-[threading "0.4.0"]
+[net.clojars.unexpectedness/threading "0.4.1"]
 ```
 
 ```clojure
@@ -60,7 +60,7 @@ Let's observe how `clojure.core/cond->` works:
   true THREADING-SLOT
   false THREADING-SLOT)
 ```
-The problem I want to point is the fact conditions in this threading arrow cannot receive the threaded expression. Similarly, the cases matching each condition must receive the threaded expression and we don't have control over this either.
+The problem I want to underline is the fact conditions in this threading arrow cannot receive the threaded expression. Similarly, the cases matching each condition must receive the threaded expression and we don't have control over this either.
 
 Same problem with `pallet.thread-expr/if->`:
 ```clojure
@@ -90,7 +90,7 @@ or just as possibly,
         inc))
 ```
 
-This is the central piece of the first goal of this library: to provide obvious and dealry missed arrows such as `cond->` and `if->` without sacrificing on flexibility thanks to the antithreading arrow `<-`.
+This is the central piece and the first goal of this library: to provide obvious and dearly missed arrows such as `cond->` and `if->` without sacrificing on flexibility thanks to the antithreading arrow `<-`.
 
 The secondary goal of this lib is to provide arrow transformers called **fletchings**. They look pretty nice on the screen :-).
 
@@ -132,7 +132,7 @@ Consider:
 
 ### Binding arrows
 
-`let->` and `binding->`.
+`let->`, `binding->`, `when-let->`.
 
 ```clojure
 (-> 1
@@ -143,50 +143,45 @@ Consider:
 
 ### Other control flow
 
-#### `juxt->`
+#### `juxt->` & `juxtm->`
 
 ```clojure
 (-> 1 (juxt-> (/ 2) dec -))
 ;; => '(1/2 0 -1)
+(-> 1 (juxtm-> :half (/ 2) :decd dec :neg -))
+;; => '{:half 1/2, :decd 0, :neg -1}
 ```
 
-#### `tap->`
+#### `doto->`
 
-`tap->` gets is inspiration from Ruby's [`tap`](https://apidock.com/ruby/Object/tap)
-
-> **`tap()`** public
->
-> Yields x to the block, and then returns x. The primary purpose of this
-> method is to “tap into” a method chain, in order to perform operations on
-> intermediate results within the chain.
-
-In Clojure, this gives:
 ```clojure
 (-> 123
-    (tap-> (println "-> the initial value"))
+    (doto->  (str " -> the initial value")
+             println)
     inc
-    (tap->> (println "New value is :")))
+    (doto->> (str "New value is : ")
+             println))
 ;; 123 -> the initial value
 ;; New value is: 124
 ;; => 124
 ```
 
-#### `tap`
+#### `dotos`
 
-The `tap` macro will work in a similar way:
+The `dotos` macro will work in a similar way:
 ```clojure
-(tap (inc 1) (println "Status: done"))
+(dotos (inc 1) (println "Status: done"))
 ;; Status: done
 ;; => 2
 ```
 
-Although it is not a threading arrow strictly speaking it will thread the tapped value into any threading form that happens to be at the first level in its body.
+Although it is not a threading arrow strictly speaking it will thread the passed value into any threading form that happens to be at the first level in its body.
 
 Consider:
 ```clojure
-(tap (inc 1)
-     (println "Status: done")
-     (->> (println "Result:")))
+(dotos (inc 1)
+       (println "Status: done")
+       (->> (println "Result:")))
 ;; Status: done
 ;; Result: 2
 ;; => 2
@@ -211,11 +206,13 @@ Consider:
 
 ### Sequential operations
 
-#### `map->`
+#### `map->` & `filter->`
 
 ```clojure
 (-> [1 2 3] (map-> (+ 3))
-;; => [4 5 6]
+;; => (4 5 6)
+(-> [1 2 3] (filter-> odd?))
+;; => (1 3)
 ```
 
 Similarly, `mapv->`, `mapcat->`, `map-keys->` & `map-vals->`.
@@ -265,21 +262,21 @@ Similarly:
 
 ### Teleport fletching/arrow
 
-The `|-` fletching stores the threaded expression on the stack then threads it to the threading form. Any deep occurence of the `-|` arrow in the threading form will thread this stored value to the next expressions.
+The `o-` fletching stores the threaded expression on the stack then threads it to the threading form. Any deep occurence of the `-o` arrow in the threading form will thread this stored value to the next expressions.
 
 ```clojure
-(-> 1  (|-  (+ 100 (-|  (/ 2))))) ;; => 101.5
-(-> 1  (|-  (+ 100 (-|| (/ 2))))) ;; => 103
-(->> 1 (||- (+ 100 (-|  (/ 2))))) ;; => 101.5
-(->> 1 (||- (+ 100 (-|| (/ 2))))) ;; => 103
+(-> 1  (o-  (+ 100 (-o  (/ 2))))) ;; => 101.5 (+ 100 1 (/ 1 2))
+(-> 1  (o-  (+ 100 (-oo (/ 2))))) ;; => 103   (+ 100 1 (/ 2 1))
+(->> 1 (oo- (+ 100 (-o  (/ 2))))) ;; => 101.5 (+ 100 (/ 1 2) 1)
+(->> 1 (oo- (+ 100 (-oo (/ 2))))) ;; => 103   (+ 100 (/ 2 1) 1)
 ```
 
 ## Defining new arrows
 
-The challenge lying in defining both the `->` and `->>` variants, observe the actual definition of `tap`:
+The challenge lying in defining both the `->` and `->>` variants, observe the actual definition of `doto->/doto->>`:
 
 ```clojure
-(defthreading tap ;; name prefix (optional). You can also write "tap :suffix".
+(defthreading doto ;; name prefix (optional). You can also write "doto :suffix".
   "Threads the expr through the forms then returns the value of
   the initial expr.";; Doc body (optional)
   [->  "Threads like `->`."   ;; Doc suffixes (optional)
@@ -313,12 +310,12 @@ against:
 
 ## TODO
 
--  `cond->`, maybe `merge->`, etc... Contributions are welcomed if they are driven by *an impluse*.
+-  `cond->`, maybe `merge->`, etc... Contributions are welcomed if they are driven by *an impulse*.
 -  `pp->` is a bit weird at times.
 
 -------------------------------------------------------------------------------
 
-Copyright © 2018 unexpectedness
+Copyright © 2024 unexpectedness
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.

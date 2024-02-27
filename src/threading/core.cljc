@@ -59,14 +59,14 @@
 
   Example:
 
-  Consider this definition of [[tap]] with a custom `->debug`
+  Consider this definition of [[doto->]] with a custom `->debug`
   threading variant:
   ```clojure
 
   (defmacro ->debug [& forms]
     `(-> ~@forms))
 
-  (defthreading tap
+  (defthreading doto
     \"Some documentation.\"
     [-> \"Some sufix for the documentation.\"
      ->> \"Another documentation complement\"
@@ -78,7 +78,7 @@
        (~&threading-variant result# ~@forms)
        result#))
 
-  (tap->debug 1 (println \": perform some side-effect\"))
+  (doto->debug 1 (println \": perform some side-effect\"))
   ;; debug->: 1
   ;; 1 : perform some side-effect.
   ;; => 1
@@ -169,7 +169,7 @@
     <-  `(do ~second-expr)
     <<- `(do ~first-expr)))
 
-(defthreading tap
+(defthreading doto
   "Threads `expr` through `forms` then returns the value of
   the initial expression."
   [->  "Threads like `->`."
@@ -179,15 +179,22 @@
      (~&threading-variant result# ~@forms)
      result#))
 
-(defmacro tap
+(defmacro ^:no-doc tap-> [& args]
+  "Deprecated. Old name of [[doto->]]"
+  `(doto-> ~@args))
+(defmacro ^:no-doc tap->> [& args]
+  "Deprecated. Old name of [[doto->>]]"
+  `(doto->> ~@args))
+
+(defmacro dotos
   "Evaluates expressions in order returning the value of the first.
   Will thread the first expression into any immediate threading
   subexpressions.
 
   ```clojure
-  (tap 123
-       (println \"yo\")
-       (some-> inc println))
+  (dotos 123
+         (println \"yo\")
+         (some-> inc println))
   ; yo
   ; 124
   ; => 123
@@ -196,11 +203,15 @@
   (let [result-sym (gensym "result-")]
     `(let [~result-sym ~expr]
        ~@(map (fn [x]
-                (if (some->> x first str (re-matches #"^.*->>?|-\|\|?$"))
+                (if (some->> x first str (re-matches #"^.*->>?|-oo?$"))
                   `(-> ~result-sym ~x)
                   x))
               body)
        ~result-sym)))
+
+(defmacro ^:no-doc tap [& args]
+  "Deprecated. Old name of [[dotos]]."
+  `(dotos ~@args))
 
 (defmacro ^:no-doc literally [expr]
   `(let [expr# '~expr
@@ -464,37 +475,37 @@
          ~@(map adapt body)))))
 
 
-(def ^:private |-value-sym (gensym "|-value-"))
+(def ^:private o-value-sym (gensym "o-value-"))
 
 (defthreading
   "Stores `expr` on the stack then threads it to `form`.
-  In `form`, any deep occurence of the `-|` arrow will thread this
+  In `form`, any deep occurence of the `-o` arrow will thread this
   value stored on the stack to its inner expressions.
 
-  Note that `-|` can only be used within the body of a `|-` form."
-  [|-  "Must be used in the context of a thread-first arrow."
-   ||- "Must be used in the context of a thread-last arrow."]
+  Note that `-o` can only be used within the body of a `o-` form."
+  [o-  "Must be used in the context of a thread-first arrow."
+   oo- "Must be used in the context of a thread-last arrow."]
   [first-expr second-expr]
   (let [[expr form arrow] (case &threading-variant
-                            |-  [first-expr  second-expr '->]
-                            ||- [second-expr first-expr  '->>])]
-    `(let [~|-value-sym ~expr]
-       (~arrow ~|-value-sym ~form))))
+                            o-  [first-expr  second-expr '->]
+                            oo- [second-expr first-expr  '->>])]
+    `(let [~o-value-sym ~expr]
+       (~arrow ~o-value-sym ~form))))
 
 (defthreading
-  "See [[|-]]."
-  [-|  "Threads like `->`."
-   -|| "Threads like `->>`."]
+  "See [[o-]]."
+  [-o  "Threads like `->`."
+   -oo "Threads like `->>`."]
   [& forms]
   (let [arrow (case &threading-variant
-                -| '->
-                -|| '->>)]
-    `(~arrow ~|-value-sym ~@forms)))
+                -o '->
+                -oo '->>)]
+    `(~arrow ~o-value-sym ~@forms)))
 
-#?(:clj (defmacro •-  [& args] `(|-  ~@args)))
-#?(:clj (defmacro ••- [& args] `(||- ~@args)))
-#?(:clj (defmacro -•  [& args] `(-|  ~@args)))
-#?(:clj (defmacro -•• [& args] `(-|| ~@args)))
+#?(:clj (defmacro •-  [& args] `(o-  ~@args)))
+#?(:clj (defmacro ••- [& args] `(oo- ~@args)))
+#?(:clj (defmacro -•  [& args] `(-o  ~@args)))
+#?(:clj (defmacro -•• [& args] `(-oo ~@args)))
 
 (defthreading args :prefix
   "Fletching that uses the arrow in the threading form to thread the

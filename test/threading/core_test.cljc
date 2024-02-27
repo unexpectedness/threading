@@ -4,7 +4,7 @@
                                     >- >>-
                                     >-> >->>
                                     >>-> >>->>
-                                    tap tap-> tap->>
+                                    dotos doto-> doto->>
                                     if-> if->>
                                     if-not-> if-not->>
                                     when->
@@ -21,7 +21,7 @@
                                     let-> let->>
                                     when-let-> when-let->>
                                     binding-> binding->>
-                                    -| -|| |- ||-
+                                    -o -oo o- oo-
                                     >-args >>-args
                                     filter-> filter->>]]))
 
@@ -51,23 +51,23 @@
   (is (= 5 (->> 100 (>>- (/ 10 2))))))
 
 
-(deftest test-tap->
-  (is (= 1 (tap-> 1 inc)))
+(deftest test-doto->
+  (is (= 1 (doto-> 1 inc)))
   (is (= "1 a\n"
-         (with-out-str (tap-> 1 (println "a")))))
-  (testing "with tap->>"
-    (is (= 1 (tap->> 1 inc)))
+         (with-out-str (doto-> 1 (println "a")))))
+  (testing "with doto->>"
+    (is (= 1 (doto->> 1 inc)))
     (is (= "a 1\n"
-           (with-out-str (tap->> 1 (println "a")))))))
+           (with-out-str (doto->> 1 (println "a")))))))
 
-(deftest test-tap
-  (tap (with-out-str
-         (tap (tap 123
-                   (println "yo")
-                   (-> println)
-                   (println "yes"))
-              (as-> $ (is (= $ 123)))))
-       (as-> $ (is (= $ "yo\n123\nyes\n")))))
+(deftest test-dotos
+  (dotos (with-out-str
+           (dotos (dotos 123
+                         (println "yo")
+                         (-> println)
+                         (println "yes"))
+                  (as-> $ (is (= $ 123)))))
+         (as-> $ (is (= $ "yo\n123\nyes\n")))))
 
 (deftest test-if->
   (is (= 2     (if-> 1  number? inc (str "a")))
@@ -203,17 +203,17 @@
                               (<- (swap! x inc))
                               (<- (swap! x inc))))))))
 
-(deftest test--|-&-|
-  (testing "|-"
-    (is (= 4 (-> 1 (|- (+ 1 (-| inc))))))
-    (is (= 3 (-> 1 (|- (+ 1 (-|))))))
-    (is (= 4 (-> 1 (|- (+ 1 (-|| (/ 2)))))))
-    (is (= 3 (-> 1 (|- (+ 1 (-||)))))))
-  (testing "||-"
-    (is (= 4 (->> 1 (||- (+ 1 (-| inc))))))
-    (is (= 3 (->> 1 (||- (+ 1 (-|))))))
-    (is (= 4 (->> 1 (||- (+ 1 (-|| (/ 2)))))))
-    (is (= 3 (->> 1 (||- (+ 1 (-||))))))))
+(deftest test--o-&-o
+  (testing "o-"
+    (is (= 4 (-> 1 (o- (+ 1 (-o inc))))))
+    (is (= 3 (-> 1 (o- (+ 1 (-o))))))
+    (is (= 4 (-> 1 (o- (+ 1 (-oo (/ 2)))))))
+    (is (= 3 (-> 1 (o- (+ 1 (-oo)))))))
+  (testing "oo-"
+    (is (= 4 (->> 1 (oo- (+ 1 (-o inc))))))
+    (is (= 3 (->> 1 (oo- (+ 1 (-o))))))
+    (is (= 4 (->> 1 (oo- (+ 1 (-oo (/ 2)))))))
+    (is (= 3 (->> 1 (oo- (+ 1 (-oo))))))))
 
 (deftest test-->args
   (is (= 4.5 (->  1 (-> (>-args  (->  (+ inc inc (/ 2))))
