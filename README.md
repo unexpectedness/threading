@@ -1,6 +1,6 @@
 # threading
 
-A Clojure library that provides the kind of arrows you need on an impulse as well as some arrow transformers called *fletchings*.
+A Clojure/script library that provides the kind of arrows you need on an impulse as well as some arrow transformers called *fletchings*.
 
 <p align="center">
   <img src="http://pilavakis.net/images/new_pa22.gif">
